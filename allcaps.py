@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 """
-Panflute filter for setting C A P I T A L text, with tracking
+Panflute filter for setting C A P I T A L text, with tracking. Use if []{.smallcaps} 
+is too weak.
 
 Usage:
 
-- In Pandoc markdown, use a bracketed Span of class allcaps: [TRAJAN](.allcaps)
+- In Pandoc markdown, use a bracketed Span of class allcaps: [TRAJAN]{.allcaps}
 - The produced LaTeX output has several requirements:
   - The Microtype package for tracking (i.e., its \\textls and \\microtypecontext
     commands). In the preamble, load Microtype like so:
