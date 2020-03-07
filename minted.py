@@ -88,7 +88,8 @@ def fenced_code(options, data, element, doc, language):
     
 def fenced_python(options, data, element, doc):
     # We'll only run this for CodeBlock elements of class 'python'
-    return fenced_code(options, data, element, doc, language='python')
+    if doc.format == 'latex':
+        return fenced_code(options, data, element, doc, language='python')
 
 def main(doc=None):
     return pf.run_filter(pf.yaml_filter, tag='python', function=fenced_python, doc=doc)
