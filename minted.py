@@ -8,7 +8,7 @@ Usage:
 
 - Add \usepackage{minted} to your LaTeX preamble
 - For configuration options, see Minted's documentation: https://ctan.org/pkg/minted
-- In Markdown, use a YAML code block (see http://scorreia.com/software/panflute/guide.html#yaml-code-blocks)::
+- In Markdown, use a YAML code block (see http://scorreia.com/software/panflute/guide.html#yaml-code-blocks):
 
     ``` python
     identifier: linear-gradient-descent
