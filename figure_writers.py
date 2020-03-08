@@ -13,42 +13,9 @@ Usage:
 
 """
 
-
-"""
-Image
-
-:param args: text with the image description
-:type args: :class:`Inline`
-:param url: URL or path of the image
-:type url: ``str``
-:param title: Alt. title
-:type title: ``str``
-:param identifier: element identifier (usually unique)
-:type identifier: :class:`str`
-:param classes: class names of the element
-:type classes: :class:`list` of :class:`str`
-:param attributes: additional attributes
-:type attributes: :class:`dict`
-:Base: :class:`Inline`
-"""
-
 from enum import Enum
 from string import Template # using .format() is hard because of {} in tex
 import panflute as pf
-
-LATEX_CELL_TMPL = Template(r"""\begin{minipage}[$outer_alignment]{$cell_width\columnwidth}$cell_alignment
-$body\strut
-\end{minipage}""")
-
-"""
-\begin{figure}
-\hypertarget{ref_a_figure}{%
-\centering
-\includegraphics[width=1\textwidth,height=\textheight]{../assets/ex1_food_truck_profit.pdf}
-\caption{Erträge von Food-Trucks in Abhängigkeit von der Stadtgröße
-\autocite[vgl.][13]{Perez_PythonEcosystem_2011}}\label{ref_a_figure}
-}
-\end{figure}"""
 
 LATEX_INCLUDEGRAPHICS_TMPL = Template(r"""\begin{figure}[$placement]
 $hypertarget_open
@@ -78,15 +45,21 @@ class LaTeXWriter(object):
 
     def write_image(self):
         short_caption = self.image.attributes.get('short')
-        short_caption = '[{}]'.format(short_caption) if short_caption else ''
-            
+        if short_caption:
+            short_caption = pf.convert_text(short_caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
+            short_caption = '[{}]'.format(short_caption)
+        else:
+            short_caption = ''
+        
         placement = self.image.attributes.get('placement', '')
-        width_percent = self.image.attributes.get('width')
         identifier = self.image.identifier
-        if width_percent:
-            width_percent = width_percent.replace('%', '')
-            width = '{0:.2f}'.format(float(width_percent) / 100)
+        width = self.image.attributes.get('width')
+        if width:
+            width = width.replace('%', '')
+            width = '{0:.2f}'.format(float(width) / 100)
             width = Template(r'[width=$width\textwidth]').safe_substitute(width=width)
+        else:
+            width = ''
 
         hypertarget_open = Template(r'\hypertarget{$id}{%').safe_substitute(id=identifier) if identifier else ''
         hypertarget_close = '}' if identifier else ''
@@ -104,6 +77,10 @@ class LaTeXWriter(object):
         def my_stringify(el):
             if isinstance(el, pf.Cite):
                 return _write_cite(el)
+            if isinstance(el, pf.Math) and el.format == 'InlineMath':
+                return '${}$'.format(pf.stringify(el))
+            if isinstance(el, pf.Math) and el.format == 'DisplayMath':
+                return '$$ {} $$'.format(pf.stringify(el))
             else:
                 return _write_element(el)
 
