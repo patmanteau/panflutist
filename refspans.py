@@ -5,7 +5,7 @@ Easy references to tables, images etc.
 
 Usage:
 
-- In Pandoc markdown, use a bracketed Span of class .ref: [ref_img_trajan]{.ref}
+- In Pandoc markdown, use a bracketed Span of class ref: [ref_img_trajan]{.ref}
 
 """
 
