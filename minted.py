@@ -54,7 +54,7 @@ $caption
 $identifier
 }""")
 
-def fenced_code(options, data, element, doc, language):
+def fenced_latex(options, data, element, doc, language):
     values = {
         'language': language,
         'mintedopts': '',
@@ -86,10 +86,24 @@ def fenced_code(options, data, element, doc, language):
         tex = TEMPLATE_CODEBLOCK.safe_substitute(values)
         return pf.RawBlock(tex, format='latex')
     
+def fenced_html(options, data, element, doc, language):
+    identifier = options.get('identifier', '')
+    element.identifier = identifier
+    caption = options.get('caption', '')
+    caption = pf.convert_text(caption, extra_args=['--biblatex'], input_format='markdown', output_format='html')
+
+    caption_span = pf.Plain(pf.Span(pf.RawInline(caption), classes=['fencedSourceCodeCaption']))
+    code_block = pf.CodeBlock(data, classes=element.classes, attributes=element.attributes)
+
+    return pf.Div(code_block, caption_span, identifier=identifier, classes=['fencedSourceCode'])
+
 def fenced_python(options, data, element, doc):
     # We'll only run this for CodeBlock elements of class 'python'
+    pf.debug(doc.format)
     if doc.format == 'latex':
-        return fenced_code(options, data, element, doc, language='python')
+        return fenced_latex(options, data, element, doc, language='python')
+    elif doc.format == 'html':
+        return fenced_html(options, data, element, doc, language='python')
 
 def main(doc=None):
     return pf.run_filter(pf.yaml_filter, tag='python', function=fenced_python, doc=doc)

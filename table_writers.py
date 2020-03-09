@@ -2,7 +2,7 @@
 
 r"""
 
-Extended longtables for LaTeX. Enables setting short captions, float placement and table width factor.
+Extended tables. Enables setting short captions, float placement and table width factor.
 
 Usage:
  
@@ -55,8 +55,14 @@ class OuterAlignment(Enum):
     BOTTOM = r'b'
 
 
+class HtmlWriter(object):
 
-class LaTeXWriter(object):
+    __slots__ = [
+        'table',
+        'table_width'
+    ]
+
+class LatexWriter(object):
 
     __slots__ = [
         'table',
@@ -131,7 +137,7 @@ def action(table, doc):
     if not isinstance(table, pf.Table) or not doc.format == 'latex':
         return table
     
-    writer = LaTeXWriter(table, 0.9)
+    writer = LatexWriter(table, 0.9)
     return pf.RawBlock(writer.write_table(), format='latex')
 
 
