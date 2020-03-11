@@ -49,7 +49,7 @@ TEMPLATE_CODEBLOCK = Template(r"""{%
 \begin{minted}$mintedopts{$language}
 $text
 \end{minted}
-\unskip
+%\unskip
 $caption
 $identifier
 }""")
