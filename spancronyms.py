@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 r"""
-Panflute filter that allows for acronyms in latex
+Panflute filter supporting acronyms and glossary entries in latex
 
 Usage:
 
-- Use Pandoc markdown bracketed Spans: [SO]{.ac d="Stack Overflow"}
+- Use Pandoc markdown bracketed Spans: 
+    - [so]{.ac short="SO" long="Stack Overflow"}
+    - [ptt]{.gl .up name="Potato" text="potato" description="Starchy tuber" plural="potatoes"}
 - When outputting to latex, you must add this line to the preamble:
-\usepackage[acronym,smallcaps]{glossaries}
+\usepackage[acronym,smallcaps]{glossaries-extra}
 - Then, this filter will add \newacronym{LRU}{LRU}{Least Recently Used}
   for the definition of LRU and finally \gls{LRU} to every time the term
   is used in the text.
@@ -15,32 +17,85 @@ Usage:
 (see https://groups.google.com/forum/#!topic/pandoc-discuss/Bz1cG55BKjM)
 """
 
-from string import Template  # using .format() is hard because of {} in tex
+from jinja2 import Template  # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-TEMPLATE_GLS = Template(r"\gls{$acronym}")
-TEMPLATE_NEWACRONYM = Template(r"\newacronym{$acronym}{$acronym}{$definition}")
+USE_TERM = latex_env.from_string(
+    r"<% if uppercase %>\Gls<% else %>\gls<% endif %>{<< label >>}"
+)
+
+DEFINE_ABBREVIATION = latex_env.from_string(
+    r"\newabbreviation{<< label >>}{<< short >>}{<< long >>}"
+)
+
+DEFINE_GLOSSARY_ENTRY = latex_env.from_string(r"""
+\newglossaryentry{<< label >>}{
+    name={<< name >>},
+    <% if text %>text={<< text >>},<% endif %>
+    <% if plural %>plural={<< plural >>},<% endif %>
+    description={<< description >>}
+}
+""")
 
 def prepare(doc):
-    doc.acronyms = {}
+    doc.abbrs = {}
+    doc.glsentries = {}
+
+def ac_latex(e, doc):
+    label = pf.stringify(e).lower()
+    _short = e.attributes.get('short')
+    _long = e.attributes.get('long')
+
+    if _short and _long:
+        values = {
+            'label': label,
+            'short': _short,
+            'text': _long,
+            'uppercase': 'up' in e.classes
+        }
+        doc.abbrs[label] = values
+    
+    tex = USE_TERM.render(label=label)
+    return pf.RawInline(tex, format='latex')
+
+def gl_latex(e, doc):
+    label = pf.stringify(e).lower()
+    name = e.attributes.get('name')
+    description = e.attributes.get('description')
+    
+    if label and name and description:
+        values = {
+            'label': label,
+            'name': name,
+            'description': pf.convert_text(description, extra_args=['--biblatex'], input_format='markdown', output_format='latex'),
+            'text': e.attributes.get('text'),
+            'plural': e.attributes.get('plural'),
+            'uppercase': 'up' in e.classes
+        }
+        doc.glsentries[label] = values
+
+    tex = USE_TERM.render(label=label)
+    return pf.RawInline(tex, format='latex')
 
 def action(e, doc):
-    if isinstance(e, pf.Span) and 'ac' in e.classes:
-        acronym = pf.stringify(e).lower()
-        definition = e.attributes.get('d', '')
-        # Only update dictionary if definition is not empty
-        if definition:
-            doc.acronyms[acronym] = definition
-
-        if doc.format == 'latex':
-            tex = TEMPLATE_GLS.safe_substitute(acronym=acronym)
-            return pf.RawInline(tex, format='latex')
+    if isinstance(e, pf.Span) and doc.format == 'latex':
+        if 'ac' in e.classes:
+            return ac_latex(e, doc)
+        elif 'gl' in e.classes:
+            return gl_latex(e, doc)
+    else:
+        return None
 
 def finalize(doc):
     if doc.format == 'latex':
         tex = [r'\makeglossaries']
-        for acronym, definition in doc.acronyms.items():
-            tex_acronym = TEMPLATE_NEWACRONYM.safe_substitute(acronym=acronym, definition=definition)
+        for _, values in doc.abbrs.items():
+            tex_acronym = DEFINE_ABBREVIATION.render(**values)
+            tex.append(tex_acronym)
+
+        for _, values in doc.glsentries.items():
+            tex_acronym = DEFINE_GLOSSARY_ENTRY.render(**values)
             tex.append(tex_acronym)
 
         tex = [pf.MetaInlines(pf.RawInline(line, format='latex')) for line in tex]
