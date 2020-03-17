@@ -17,7 +17,6 @@ Usage:
 (see https://groups.google.com/forum/#!topic/pandoc-discuss/Bz1cG55BKjM)
 """
 
-from jinja2 import Template  # using .format() is hard because of {} in tex
 from jinja2tex import latex_env
 import panflute as pf
 
@@ -56,7 +55,7 @@ def ac_latex(e, doc):
         }
         doc.abbrs[label] = values
     
-    tex = USE_TERM.render(label=label)
+    tex = USE_TERM.render(label=label, uppercase='up' in e.classes)
     return pf.RawInline(tex, format='latex')
 
 def gl_latex(e, doc):
@@ -75,7 +74,7 @@ def gl_latex(e, doc):
         }
         doc.glsentries[label] = values
 
-    tex = USE_TERM.render(label=label)
+    tex = USE_TERM.render(label=label, uppercase='up' in e.classes)
     return pf.RawInline(tex, format='latex')
 
 def action(e, doc):
