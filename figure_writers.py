@@ -14,24 +14,44 @@ Usage:
 """
 
 from enum import Enum
-from string import Template # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-LATEX_INCLUDEGRAPHICS_TMPL = Template(r"""\begin{figure}[$placement]
-$hypertarget_open
+LATEX_INCLUDEGRAPHICS = USE_TERM = latex_env.from_string(
+r"""\begin{figure}<% if placement %>[<< placement >>]<% endif %>
+<% if identifier %>\hypertarget{<< identifier >>}{%<% endif %>
 \centering
-\includegraphics$width{$path}
-\caption$short_caption{$caption}$label
-$hypertarget_close
-\end{figure}""")
+\includegraphics<% if width %>[width=<< width >>\textwidth]<% endif %>{<< path >>}
+\caption<% if short_caption %>[<< short_caption >>]<% endif %>{<< caption >>}<% if identifier %>\label{<< identifier >>}<% endif %>
+<% if identifier %>}<% endif %>
+\end{figure}"""
+)
 
-LATEX_INPUT_TMPL = Template(r"""\begin{figure}[$placement]
-$hypertarget_open
+LATEX_INPUT = USE_TERM = latex_env.from_string(
+r"""\begin{figure}<% if placement %>[<< placement >>]<% endif %>
+<% if identifier %>\hypertarget{<< identifier >>}{%<% endif %>
 \centering
-\input{$path}
-\caption$short_caption{$caption}$label
-$hypertarget_close
-\end{figure}""")
+\input{<< path >>}
+\caption<% if short_caption %>[<< short_caption >>]<% endif %>{<< caption >>}<% if identifier %>\label{<< identifier >>}<% endif %>
+<% if identifier %>}<% endif %>
+\end{figure}"""
+)
+
+# LATEX_INCLUDEGRAPHICS_TMPL = Template(r"""\begin{figure}[$placement]
+# $hypertarget_open
+# \centering
+# \includegraphics$width{$path}
+# \caption$short_caption{$caption}$label
+# $hypertarget_close
+# \end{figure}""")
+
+# LATEX_INPUT_TMPL = Template(r"""\begin{figure}[$placement]
+# $hypertarget_open
+# \centering
+# \input{$path}
+# \caption$short_caption{$caption}$label
+# $hypertarget_close
+# \end{figure}""")
 
 class LaTeXWriter(object):
 
@@ -47,9 +67,6 @@ class LaTeXWriter(object):
         short_caption = self.image.attributes.get('short')
         if short_caption:
             short_caption = pf.convert_text(short_caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
-            short_caption = '[{}]'.format(short_caption)
-        else:
-            short_caption = ''
         
         placement = self.image.attributes.get('placement', '')
         identifier = self.image.identifier
@@ -57,13 +74,6 @@ class LaTeXWriter(object):
         if width:
             width = width.replace('%', '')
             width = '{0:.2f}'.format(float(width) / 100)
-            width = Template(r'[width=$width\textwidth]').safe_substitute(width=width)
-        else:
-            width = ''
-
-        hypertarget_open = Template(r'\hypertarget{$id}{%').safe_substitute(id=identifier) if identifier else ''
-        hypertarget_close = '}' if identifier else ''
-        label = Template(r'\label{$id}').safe_substitute(id=identifier) if identifier else ''
 
         path = self.image.url
         
@@ -89,19 +99,17 @@ class LaTeXWriter(object):
         
         values = {
             'placement': placement,
-            'hypertarget_open': hypertarget_open,
             'width': width,
             'path': path,
-            'hypertarget_close': hypertarget_close,
             'short_caption': short_caption,
             'caption': converted_caption,
-            'label': label
+            'identifier': identifier
         }
         # don't use includegraphics on PGF files
         if self.image.url.endswith('.pgf'):
-            tex = LATEX_INPUT_TMPL.safe_substitute(values)            
+            tex = LATEX_INPUT.render(values)            
         else:
-            tex = LATEX_INCLUDEGRAPHICS_TMPL.safe_substitute(values)
+            tex = LATEX_INCLUDEGRAPHICS.render(values)
         return tex
 
 
