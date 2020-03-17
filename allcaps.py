@@ -32,16 +32,16 @@ Usage:
   see their respective CTAN entries.
 """
 
-from string import Template  # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-TEMPLATE_LSUPPER = Template(r'\textuppercase{$text}')
+UPPERCASE = latex_env.from_string(r'\textuppercase{<< text >>}')
 
 def action(e, doc):
     if isinstance(e, pf.Span) and 'allcaps' in e.classes:
         text = pf.stringify(e)
         if doc.format == 'latex':
-            tex = TEMPLATE_LSUPPER.safe_substitute(text=text)
+            tex = UPPERCASE.render(text=text)
             return pf.RawInline(tex, format='latex')
 
 def main(doc=None):

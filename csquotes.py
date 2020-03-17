@@ -12,6 +12,7 @@ Usage:
 
     ``` blockquote
     identifier: linear-gradient-descent
+    language: english
     cite: [@Perez_Python_2011, 13]
     ...
     Scientific computing, a discipline at the intersection of scientific research, engineering, 
@@ -27,10 +28,10 @@ Usage:
   extend the filter to support additional languages seems worth it to me.
 """
 
-from string import Template  # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-TEMPLATE_BLOCKQUOTE = Template(r"\blockquote$citepre$citesuf{$text}")
+TEMPLATE_BLOCKQUOTE = latex_env.from_string(r'\blockquote$citepre$citesuf{$text}')
 
 def fenced_blockquote(options, data, element, doc, language):
     values = {
