@@ -50,7 +50,7 @@ def ac_latex(e, doc):
         values = {
             'label': label,
             'short': _short,
-            'text': _long,
+            'long': _long,
             'uppercase': 'up' in e.classes
         }
         doc.abbrs[label] = values
