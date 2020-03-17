@@ -24,7 +24,7 @@ latex_env = jinja2.Environment(
     comment_end_string = '#>',
     line_statement_prefix = '%%',
     line_comment_prefix = '%#',
-    trim_blocks = True,
+    trim_blocks = False,
     autoescape = False,
     loader = jinja2.FileSystemLoader(os.path.abspath('.'))
 )
