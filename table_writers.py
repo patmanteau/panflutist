@@ -27,33 +27,21 @@ Usage:
 
 """
 
+from decimal import Decimal
 from enum import Enum
-from string import Template # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-LATEX_CELL_TMPL = Template(r"""\begin{minipage}[$outer_alignment]{$cell_width\columnwidth}$cell_alignment
-$body\strut
-\end{minipage}""")
-
-LATEX_TABLE_TMPL = Template(r"""\begin{longtable}[$placement]{@{}$col_descriptor@{}}
-\caption$short_caption{$caption}\endlastfoot
-\toprule
-$header
-\midrule
-\endfirsthead
-\toprule
-$header
-\midrule
-\endhead
-$body
-\bottomrule
-\end{longtable}""")
-
-class OuterAlignment(Enum):
+class VerticalAlignment(Enum):
     TOP = r't'
     CENTER = r'c'
     BOTTOM = r'b'
 
+class Alignment(Enum):
+    DEFAULT = 'AlignDefault'
+    LEFT = 'AlignLeft'
+    RIGHT = 'AlignRight'
+    CENTER = 'AlignCenter'
 
 class HtmlWriter(object):
 
@@ -62,11 +50,82 @@ class HtmlWriter(object):
         'table_width'
     ]
 
-class LatexWriter(object):
+class LatexTableCell(object):
+
+    LATEX_ALIGNMENT = {
+        'AlignDefault': r'\raggedright',
+        'AlignLeft': r'\raggedright',
+        'AlignRight': r'\raggedleft',
+        'AlignCenter': r'\centered'
+    }
+
+    __slots__ = [
+        'content',
+        'width',
+        'align',
+        'valign'
+    ]
+
+    def __init__(self, content, width, scale=1.0, align=Alignment.DEFAULT, valign=VerticalAlignment.TOP):
+        raw_content = pf.stringify(content)
+        self.content = pf.convert_text(raw_content, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
+        self.width = scale * width
+        self.align = self.LATEX_ALIGNMENT[align]
+        self.valign = valign.value
+
+    
+class LatexTableRow(object):
+    ROW_TMPL = latex_env.from_string(r"""
+""")
+
+    __slots__ = [
+        'cells'
+    ]
+
+    def __init__(self, row, scale, valign, parent):
+        self.cells = [LatexTableCell(
+            cell,
+            parent.width[i],
+            scale,
+            parent.alignment[i],
+            valign
+        ) for (i, cell) in enumerate(row.content)]
+        
+class LatexTable(object):
+    TABLE_TMPL = latex_env.from_string(
+r"""<% macro make_row(row) -%>
+<%- for cell in row.cells -%>
+\begin{minipage}[<< cell.valign >>]{<< cell.width >>\columnwidth}<< cell.align >>
+<< cell.content >>\strut
+\end{minipage}<% if not loop.last %> & <% else %>\tabularnewline<% endif %>
+<% endfor -%>
+<%- endmacro %>
+\begin{longtable}<% if table.placement %>[<< table.placement >>]<% endif %>{@{}<< table.col_descriptor >>@{}}
+\caption<% if table.short_caption %>[<< table.short_caption >>]<% endif %>{<< table.caption >>}\endlastfoot
+\toprule
+<< make_row(table.header) ->>
+\midrule
+\endfirsthead
+\toprule
+<< make_row(table.header) ->>
+\midrule
+\endhead
+<% for row in table.rows -%>
+<< make_row(row) >>
+<%- endfor -%>
+\bottomrule
+\end{longtable}"""
+)
 
     __slots__ = [
         'table',
-        'table_width'
+        'scale',
+        'header',
+        'caption',
+        'short_caption',
+        'placement',
+        'col_descriptor',
+        'rows'
     ]
 
     TABULAR_ALIGNMENT = {
@@ -76,69 +135,34 @@ class LatexWriter(object):
         'AlignCenter': r'c'
     }
 
-    CELL_ALIGNMENT = {
-        'AlignDefault': r'\raggedright',
-        'AlignLeft': r'\raggedright',
-        'AlignRight': r'\raggedleft',
-        'AlignCenter': r'\centered'
-    }
-
-    def __init__(self, table, table_width=0.9):
+    def __init__(self, table):
         self.table = table
-        self.table_width = table_width
-
-    def write_cell(self, cell, width, align='AlignDefault', outer_align=OuterAlignment.TOP):
-        tex = LATEX_CELL_TMPL.safe_substitute({
-            'outer_alignment': outer_align.value,
-            'cell_width': width * self.table_width,
-            'cell_alignment': self.CELL_ALIGNMENT[align],
-            'body': pf.stringify(cell)
-        })
-        return tex
-
-    def write_row(self, row, outer_align=OuterAlignment.TOP):
-        cells = []
-        for (i, cell) in enumerate(row.content):
-            cell = self.write_cell(cell, self.table.width[i], self.table.alignment[i], outer_align)
-            cells.append(cell)
-
-        tex = ' & '.join(cells) + '\\tabularnewline'
-        return tex
-
-    def write_table(self):
-        # Process extended table attributes first so cell width gets calculated correctly
-        short_caption = ''
-        placement = ''
-        if isinstance(self.table.parent, pf.Div) and 'ext' in self.table.parent.classes:
-            short_caption = self.table.parent.attributes.get('short')
-            short_caption = '[{}]'.format(short_caption) if short_caption else ''
-            placement = self.table.parent.attributes.get('placement', '')
-            width = self.table.parent.attributes.get('width')
-            if width:
-                self.table_width = float(width)
-
-        col_desc = ''.join([self.TABULAR_ALIGNMENT[a] for a in self.table.alignment])
-        body = ''.join([self.write_row(row) for row in self.table.content])
-        caption = ''.join([pf.stringify(el) for el in self.table.caption.list])
-        header = self.write_row(self.table.header, outer_align=OuterAlignment.BOTTOM)
+        self.scale = float(table.parent.attributes.get('width', 1))
+        self.short_caption = table.parent.attributes.get('short')
+        self.placement = table.parent.attributes.get('placement')
+        self.col_descriptor = ''.join([self.TABULAR_ALIGNMENT[a] for a in table.alignment])
         
-        tex = LATEX_TABLE_TMPL.safe_substitute({
-            'placement': placement,
-            'short_caption': short_caption,
-            'col_descriptor': col_desc,
-            'header': header,
-            'body': body,
-            'caption': caption
-        })
-        return tex
+        raw_caption = ''.join([pf.stringify(el) for el in table.caption.list])
+        self.caption = pf.convert_text(raw_caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
 
+        self.header = LatexTableRow(table.header, self.scale, VerticalAlignment.BOTTOM, table)
+        self.rows = [LatexTableRow(row, self.scale, VerticalAlignment.TOP, table) for row in table.content]
 
-def action(table, doc):
-    if not isinstance(table, pf.Table) or not doc.format == 'latex':
-        return table
+    def render(self):
+        return self.TABLE_TMPL.render(table=self)
+
+    @staticmethod
+    def parse_table(table):
+        if isinstance(table.parent, pf.Div) and 'ext' in table.parent.classes:
+            return LatexTable(table)
+            
+
+def action(pandoc_table, doc):
+    if not isinstance(pandoc_table, pf.Table) or not doc.format == 'latex':
+        return pandoc_table
     
-    writer = LatexWriter(table, 0.9)
-    return pf.RawBlock(writer.write_table(), format='latex')
+    table = LatexTable.parse_table(pandoc_table)
+    return pf.RawBlock(table.render(), format='latex')
 
 
 def main(doc=None):
