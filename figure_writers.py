@@ -37,23 +37,7 @@ r"""\begin{figure}<% if placement %>[<< placement >>]<% endif %>
 \end{figure}"""
 )
 
-# LATEX_INCLUDEGRAPHICS_TMPL = Template(r"""\begin{figure}[$placement]
-# $hypertarget_open
-# \centering
-# \includegraphics$width{$path}
-# \caption$short_caption{$caption}$label
-# $hypertarget_close
-# \end{figure}""")
-
-# LATEX_INPUT_TMPL = Template(r"""\begin{figure}[$placement]
-# $hypertarget_open
-# \centering
-# \input{$path}
-# \caption$short_caption{$caption}$label
-# $hypertarget_close
-# \end{figure}""")
-
-class LaTeXWriter(object):
+class LaTeXImage(object):
 
     __slots__ = [
         'image',
@@ -63,7 +47,7 @@ class LaTeXWriter(object):
     def __init__(self, image):
         self.image = image
 
-    def write_image(self):
+    def render(self):
         short_caption = self.image.attributes.get('short')
         if short_caption:
             short_caption = pf.convert_text(short_caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
@@ -113,12 +97,12 @@ class LaTeXWriter(object):
         return tex
 
 
-def action(image, doc):
-    if not isinstance(image, pf.Image) or not doc.format == 'latex':
+def action(pandoc_image, doc):
+    if not isinstance(pandoc_image, pf.Image) or not doc.format == 'latex':
         return None
     
-    writer = LaTeXWriter(image)
-    return pf.RawInline(writer.write_image(), format='latex')
+    image = LaTeXImage(pandoc_image)
+    return pf.RawInline(image.render(), format='latex')
 
 
 def main(doc=None):
