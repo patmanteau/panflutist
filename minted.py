@@ -11,9 +11,11 @@ Usage:
 - In Markdown, use a YAML code block (see http://scorreia.com/software/panflute/guide.html#yaml-code-blocks):
 
     ``` python
+    language: python
     identifier: linear-gradient-descent
     caption: Lineares Gradientenverfahren [vgl. @Cousteau, 33-35]
     floating: True
+    placement: htp
     mintedopts: linenos=false, mathescape
     ...
     def gradient_descent(X, y, theta, alpha, iterations):
@@ -33,10 +35,11 @@ Usage:
   extend the filter to support additional languages seems worth it to me.
 """
 
-from string import Template  # using .format() is hard because of {} in tex
+from jinja2tex import latex_env
 import panflute as pf
 
-TEMPLATE_FLOATING_CODEBLOCK = Template(r"""\begin{listing}[htbp]
+TEMPLATE_FLOATING_CODEBLOCK = latex_env.from_string(
+r"""\begin{listing}[htbp]
 \begin{minted}$mintedopts{$language}
 $text
 \end{minted}
@@ -44,7 +47,8 @@ $caption
 $identifier
 \end{listing}""")
 
-TEMPLATE_CODEBLOCK = Template(r"""{%
+TEMPLATE_CODEBLOCK = latex_env.from_string(
+r"""{%
 \singlespacing
 \begin{minted}$mintedopts{$language}
 $text
@@ -54,39 +58,38 @@ $caption
 $identifier
 }""")
 
-def fenced_latex(options, data, element, doc, language):
-    values = {
-        'language': language,
-        'mintedopts': '',
-        'caption': '',
-        'identifier': '',
-        'text': data
-    }
 
-    identifier = options.get('identifier', '')
-    if identifier:
-        values['identifier'] = r'\label{{{}}}'.format(identifier)
+CODEBLOCK = latex_env.from_string(
+r"""<%- if floating -%>
+\begin{listing}<% if placement %>[<< placement >>]<% endif %>
+<%- endif -%>
+\begin{minted}<% if options %>[<< options >>]<% endif %>{<< language >>}
+<< content >>
+\end{minted}
+<% if caption %><% if floating %>\caption{<< caption >>}<% else %>\captionof{listing}{<< caption >>}<% endif %><% endif %>
+<% if identifier %>\label{<< identifier >>}<% endif %>
+<% if floating %>\end{listing}<% endif %>""")
 
-    mintedopts = options.get('mintedopts', '')
-    if mintedopts:
-        values['mintedopts'] = r'[{}]'.format(mintedopts)
+def fenced_latex(options, data, element, doc):
+    raw_caption = options.get('caption')
+    caption = pf.convert_text(
+        options.get('caption'),
+        extra_args=['--biblatex'], 
+        input_format='markdown', 
+        output_format='latex') if raw_caption else None
 
-    caption = options.get('caption', '')
-    floating = options.get('floating', True)#.strip().lower() == 'true'
-    if floating:
-        if caption:
-            converted_caption = pf.convert_text(caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
-            values['caption'] = r'\caption{{{}}}'.format(converted_caption)
-        tex = TEMPLATE_FLOATING_CODEBLOCK.safe_substitute(values)
-        return pf.RawBlock(tex, format='latex')
-    else:
-        if caption:
-            converted_caption = pf.convert_text(caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
-            values['caption'] = r'\captionof{{listing}}{{{}}}'.format(converted_caption)
-        tex = TEMPLATE_CODEBLOCK.safe_substitute(values)
-        return pf.RawBlock(tex, format='latex')
+    latex = CODEBLOCK.render({
+        'floating': options.get('caption'),
+        'placement': options.get('placement'),
+        'options': options.get('mintedopts'),
+        'language': options.get('language'),
+        'content': data,
+        'caption': caption,
+        'identifier': options.get('identifier', '')
+    })
+    return pf.RawBlock(latex, format='latex')
     
-def fenced_html(options, data, element, doc, language):
+def fenced_html(options, data, element, doc):
     identifier = options.get('identifier', '')
     element.identifier = identifier
     caption = options.get('caption', '')
@@ -97,16 +100,19 @@ def fenced_html(options, data, element, doc, language):
 
     return pf.Div(code_block, caption_span, identifier=identifier, classes=['fencedSourceCode'])
 
-def fenced_python(options, data, element, doc):
+def fenced_listing(options, data, element, doc):
     # We'll only run this for CodeBlock elements of class 'python'
-    pf.debug(doc.format)
     if doc.format == 'latex':
-        return fenced_latex(options, data, element, doc, language='python')
+        return fenced_latex(options, data, element, doc)
     elif doc.format == 'html':
-        return fenced_html(options, data, element, doc, language='python')
+        return fenced_html(options, data, element, doc)
 
 def main(doc=None):
-    return pf.run_filter(pf.yaml_filter, tag='python', function=fenced_python, doc=doc)
+    return pf.run_filter(pf.yaml_filter, doc=doc, tags={
+        'python': fenced_listing,
+        'bash': fenced_listing,
+        'sql': fenced_listing
+    })
 
 if __name__ == '__main__':
     main()
