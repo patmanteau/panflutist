@@ -17,6 +17,25 @@ from enum import Enum
 from jinja2tex import latex_env
 import panflute as pf
 
+# write citations ourself, panflute-stringified citations are borked
+# ex: (vgl. Zweig 2018, S. 25–208)vgl., 25-208
+def _write_element(el):
+    return pf.stringify(el)
+
+def _write_cite(cite):
+    return pf.stringify(pf.Plain(*cite.content))
+
+def my_stringify(el):
+    if isinstance(el, pf.Cite):
+        return _write_cite(el)
+    if isinstance(el, pf.Math) and el.format == 'InlineMath':
+        return '${}$'.format(pf.stringify(el))
+    if isinstance(el, pf.Math) and el.format == 'DisplayMath':
+        return '$$ {} $$'.format(pf.stringify(el))
+    else:
+        return _write_element(el)
+
+
 LATEX_INCLUDEGRAPHICS = USE_TERM = latex_env.from_string(
 r"""\begin{figure}<% if placement %>[<< placement >>]<% endif %>
 <% if identifier %>\hypertarget{<< identifier >>}{%<% endif %>
@@ -60,23 +79,6 @@ class LaTeXImage(object):
             width = '{0:.2f}'.format(float(width) / 100)
 
         path = self.image.url
-        
-        # write citations ourself, something is awry between panflute and me
-        def _write_element(el):
-            return pf.stringify(el)
-
-        def _write_cite(cite):
-            return pf.stringify(pf.Plain(*cite.content))
-
-        def my_stringify(el):
-            if isinstance(el, pf.Cite):
-                return _write_cite(el)
-            if isinstance(el, pf.Math) and el.format == 'InlineMath':
-                return '${}$'.format(pf.stringify(el))
-            if isinstance(el, pf.Math) and el.format == 'DisplayMath':
-                return '$$ {} $$'.format(pf.stringify(el))
-            else:
-                return _write_element(el)
 
         caption = ''.join([my_stringify(el) for el in self.image.content])
         converted_caption = pf.convert_text(caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')

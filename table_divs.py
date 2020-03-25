@@ -8,7 +8,7 @@ Usage:
  
 - Wrap tables in a Div of class `ext` and set attributes like so:
     ```markdown
-    ::: {.ext short="This is a short table caption" placement="htbp" width="0.7"}
+    ::: {.divtable #tbl:a_table short="This is a short table caption" placement="htbp" width="0.7"}
     ---------------------------------------------------------------------------
     Column 1            Column 2                Column 3
     --------------      -------------------     -------------------
@@ -21,7 +21,7 @@ Usage:
     Row 4               0,5                     0,6
 
     ---------------------------------------------------------------------------
-    Table: This is the table caption. Suspendisse blandit dolor sed tellus venenatis, venenatis fringilla turpis pretium. \label{ref_a_table}
+    Table: This is the table caption. Suspendisse blandit dolor sed tellus venenatis, venenatis fringilla turpis pretium.
     :::
     ```
 
@@ -31,6 +31,9 @@ from decimal import Decimal
 from enum import Enum
 from jinja2tex import latex_env
 import panflute as pf
+
+# fix for broken citations
+from figure_divs import my_stringify
 
 class VerticalAlignment(Enum):
     TOP = r't'
@@ -101,7 +104,8 @@ r"""<% macro make_row(row) -%>
 <% endfor -%>
 <%- endmacro %>
 \begin{longtable}<% if table.placement %>[<< table.placement >>]<% endif %>{@{}<< table.col_descriptor >>@{}}
-\caption<% if table.short_caption %>[<< table.short_caption >>]<% endif %>{<< table.caption >>}\endlastfoot
+\caption<% if table.short_caption %>[<< table.short_caption >>]<% endif %>{<< table.caption >>}
+<%- if table.identifier %>\label{<< table.identifier >>}<% endif -%>\endlastfoot
 \toprule
 << make_row(table.header) ->>
 \midrule
@@ -122,6 +126,7 @@ r"""<% macro make_row(row) -%>
         'scale',
         'header',
         'caption',
+        'identifier',
         'short_caption',
         'placement',
         'col_descriptor',
@@ -142,8 +147,9 @@ r"""<% macro make_row(row) -%>
         self.placement = table.parent.attributes.get('placement')
         self.col_descriptor = ''.join([self.TABULAR_ALIGNMENT[a] for a in table.alignment])
         
-        raw_caption = ''.join([pf.stringify(el) for el in table.caption.list])
-        self.caption = pf.convert_text(raw_caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
+        raw_caption = ''.join([my_stringify(el) for el in table.caption.list])
+        self.caption = pf.convert_text(raw_caption, extra_args=['--biblatex', '--filter=tools/panflutist/reference_spans.py'], input_format='markdown', output_format='latex')
+        self.identifier = table.parent.identifier
 
         self.header = LatexTableRow(table.header, self.scale, VerticalAlignment.BOTTOM, table)
         self.rows = [LatexTableRow(row, self.scale, VerticalAlignment.TOP, table) for row in table.content]
@@ -153,7 +159,7 @@ r"""<% macro make_row(row) -%>
 
     @staticmethod
     def parse_table(table):
-        if isinstance(table.parent, pf.Div) and 'ext' in table.parent.classes:
+        if isinstance(table.parent, pf.Div) and 'divtable' in table.parent.classes:
             return LatexTable(table)
             
 
