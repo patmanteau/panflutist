@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 r"""
 Panflute filter supporting \textquote and \foreigntextquote in LaTeX
 
@@ -17,23 +16,30 @@ Usage:
 from jinja2tex import latex_env
 import panflute as pf
 
-QUOTE = latex_env.from_string(
-r"""
+QUOTE = latex_env.from_string(r"""
 <%- if lang %>\foreigntextquote{<< lang >>}<% else %>\textquote<% endif -%>
 <% if cite %>[{<< cite >>}]<% endif -%>
 <% if punct %>[<< punct >>]<% endif -%>
-{<< text >>}"""
-)
+{<< text >>}""")
+
 
 def prepare(doc):
     pass
 
+
 def action(e, doc):
-    if isinstance(e, pf.Span) and doc.format == 'latex' and 'textquote' in e.classes:
+    if isinstance(
+            e, pf.Span) and doc.format == 'latex' and 'textquote' in e.classes:
         cite = e.attributes.get('cite')
         if cite:
-            cite = pf.convert_text(cite, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
-        text = pf.convert_text(pf.stringify(e), extra_args=['--biblatex'], input_format='markdown', output_format='latex')
+            cite = pf.convert_text(cite,
+                                   extra_args=['--biblatex'],
+                                   input_format='markdown',
+                                   output_format='latex')
+        text = pf.convert_text(pf.Plain(e),
+                               extra_args=['--biblatex'],
+                               input_format='panflute',
+                               output_format='latex')
         values = {
             'lang': e.attributes.get('lang'),
             'cite': cite,
@@ -46,11 +52,14 @@ def action(e, doc):
     else:
         return None
 
+
 def finalize(doc):
     pass
 
+
 def main(doc=None):
-    return pf.run_filter(action, prepare=prepare, finalize=finalize, doc=doc) 
+    return pf.run_filter(action, prepare=prepare, finalize=finalize, doc=doc)
+
 
 if __name__ == '__main__':
     main()
