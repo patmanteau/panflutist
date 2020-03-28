@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Panflute filter for setting C A P I T A L text, with tracking. Use if []{.smallcaps} 
 is too weak.
@@ -37,6 +36,7 @@ import panflute as pf
 
 UPPERCASE = latex_env.from_string(r'\textuppercase{<< text >>}')
 
+
 def action(e, doc):
     if isinstance(e, pf.Span) and 'allcaps' in e.classes:
         text = pf.stringify(e)
@@ -44,8 +44,10 @@ def action(e, doc):
             tex = UPPERCASE.render(text=text)
             return pf.RawInline(tex, format='latex')
 
+
 def main(doc=None):
-    return pf.run_filter(action, doc=doc) 
+    return pf.run_filter(action, doc=doc)
+
 
 if __name__ == '__main__':
     main()
