@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Make \\csquotes-style \\blockquotes
 See also: https://github.com/nick-ulle/pandoc-minted
@@ -31,7 +30,9 @@ Usage:
 from jinja2tex import latex_env
 import panflute as pf
 
-TEMPLATE_BLOCKQUOTE = latex_env.from_string(r'\blockquote$citepre$citesuf{$text}')
+TEMPLATE_BLOCKQUOTE = latex_env.from_string(
+    r'\blockquote$citepre$citesuf{$text}')
+
 
 def fenced_blockquote(options, data, element, doc, language):
     values = {
@@ -42,12 +43,15 @@ def fenced_blockquote(options, data, element, doc, language):
         'text': data
     }
 
-    caption = options.get('caption', '')
+    caption = options.get('caption')
     if caption:
-        converted_caption = pf.convert_text(caption, extra_args=['--biblatex'], input_format='markdown', output_format='latex')
+        converted_caption = pf.convert_text(caption,
+                                            extra_args=['--biblatex'],
+                                            input_format='markdown',
+                                            output_format='latex')
         values['caption'] = r'\caption{{{}}}'.format(converted_caption)
 
-    identifier = options.get('identifier', '')
+    identifier = options.get('identifier')
     if identifier:
         values['identifier'] = r'\label{{{}}}'.format(identifier)
 
@@ -58,12 +62,22 @@ def fenced_blockquote(options, data, element, doc, language):
     tex = TEMPLATE_CODEBLOCK.safe_substitute(values)
     return pf.RawBlock(tex, format='latex')
 
+
 def blockquoted(options, data, element, doc):
     # We'll only run this for CodeBlock elements of class 'blockquoted'
-    return fenced_blockquote(options, data, element, doc, language='blockquote')
+    return fenced_blockquote(options,
+                             data,
+                             element,
+                             doc,
+                             language='blockquote')
+
 
 def main(doc=None):
-    return pf.run_filter(pf.yaml_filter, tag='blockquoted', function=fenced_python, doc=doc)
+    return pf.run_filter(pf.yaml_filter,
+                         tag='blockquoted',
+                         function=fenced_python,
+                         doc=doc)
+
 
 if __name__ == '__main__':
     main()
