@@ -12,13 +12,13 @@ Usage:
 from string import Template  # using .format() is hard because of {} in tex
 import panflute as pf
 
-TEMPLATE_LSUPPER = Template(r'\ref{$text}')
+TEMPLATE_LSUPPER = Template(r'\autoref{$label}')
 
 def action(e, doc):
     if isinstance(e, pf.Span) and 'ref' in e.classes:
-        text = pf.stringify(e).replace('#', '')
+        label = pf.stringify(e).replace('#', '')
         if doc.format == 'latex':
-            tex = TEMPLATE_LSUPPER.safe_substitute(text=text)
+            tex = TEMPLATE_LSUPPER.safe_substitute(label=label)
             return pf.RawInline(tex, format='latex')
 
 def main(doc=None):
