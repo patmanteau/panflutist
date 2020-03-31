@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Panflute filter for setting C A P I T A L text, with tracking. Use if []{.smallcaps} 
+Panflute filter for setting C A P I T A L text, with tracking. Use if []{.smallcaps}
 is too weak.
 
 Usage:
