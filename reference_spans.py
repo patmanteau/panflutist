@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Easy references to tables, images etc.
 
@@ -14,6 +13,7 @@ import panflute as pf
 
 TEMPLATE_LSUPPER = Template(r'\autoref{$label}')
 
+
 def action(e, doc):
     if isinstance(e, pf.Span) and 'ref' in e.classes:
         label = pf.stringify(e).replace('#', '')
@@ -21,8 +21,10 @@ def action(e, doc):
             tex = TEMPLATE_LSUPPER.safe_substitute(label=label)
             return pf.RawInline(tex, format='latex')
 
+
 def main(doc=None):
-    return pf.run_filter(action, doc=doc) 
+    return pf.run_filter(action, doc=doc)
+
 
 if __name__ == '__main__':
     main()

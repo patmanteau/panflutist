@@ -1,4 +1,5 @@
-import jinja2, os
+import jinja2
+import os
 
 # latex_env = jinja2.Environment(
 #         block_start_string = r'\BLOCK{',
@@ -15,16 +16,15 @@ import jinja2, os
 #     )
 
 # I prefer a more concise style
-latex_env = jinja2.Environment(
-    block_start_string = '<%',
-    block_end_string = '%>',
-    variable_start_string = '<<',
-    variable_end_string = '>>',
-    comment_start_string = '<#',
-    comment_end_string = '#>',
-    line_statement_prefix = '%%',
-    line_comment_prefix = '%#',
-    trim_blocks = False,
-    autoescape = False,
-    loader = jinja2.FileSystemLoader(os.path.abspath('.'))
-)
+latex_env = jinja2.Environment(block_start_string='<%',
+                               block_end_string='%>',
+                               variable_start_string='<<',
+                               variable_end_string='>>',
+                               comment_start_string='<#',
+                               comment_end_string='#>',
+                               line_statement_prefix='%%',
+                               line_comment_prefix='%#',
+                               trim_blocks=False,
+                               autoescape=False,
+                               loader=jinja2.FileSystemLoader(
+                                   os.path.abspath('.')))
