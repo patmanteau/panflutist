@@ -39,9 +39,8 @@ UPPERCASE = latex_env.from_string(r'\textuppercase{<< text >>}')
 
 def action(e, doc):
     if isinstance(e, pf.Span) and 'allcaps' in e.classes:
-        text = pf.stringify(e)
         if doc.format == 'latex':
-            tex = UPPERCASE.render(text=text)
+            tex = UPPERCASE.render(text=pf.stringify(e))
             return pf.RawInline(tex, format='latex')
 
 

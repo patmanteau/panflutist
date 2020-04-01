@@ -28,8 +28,10 @@ def prepare(doc):
 
 
 def action(e, doc):
-    if isinstance(
-            e, pf.Span) and doc.format == 'latex' and 'textquote' in e.classes:
+    if not doc.format == 'latex':
+        return None
+
+    if isinstance(e, pf.Span) and 'textquote' in e.classes:
         cite = e.attributes.get('cite')
         if cite:
             cite = pf.convert_text(cite,
