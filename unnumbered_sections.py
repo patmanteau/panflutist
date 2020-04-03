@@ -29,7 +29,7 @@ def action(e, doc):
                 input_format='panflute',
                 output_format='latex')
 
-            chp = doc.get_metadata('use-chapter', default=True)
+            chp = doc.get_metadata('use-chapter', default=False)
             tex = CHAPTER.render(text=text) if chp else SECTION.render(
                 text=text)
             return pf.RawBlock(tex, format='latex')
