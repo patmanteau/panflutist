@@ -14,6 +14,7 @@ from jinja2tex import latex_env
 import panflute as pf
 
 SECTION = latex_env.from_string(r'\addsec{<< text >>}')
+CHAPTER = latex_env.from_string(r'\addchap{<< text >>}')
 
 
 def action(e, doc):
@@ -22,11 +23,15 @@ def action(e, doc):
             text = pf.convert_text(
                 pf.Plain(*e.content),
                 extra_args=[
-                    '--biblatex', '--filter=tools/panflutist/reference_spans.py'
+                    '--biblatex',
+                    '--filter=tools/panflutist/reference_spans.py'
                 ],
                 input_format='panflute',
                 output_format='latex')
-            tex = SECTION.render(text=text)
+
+            chp = doc.get_metadata('use-chapter', default=True)
+            tex = CHAPTER.render(text=text) if chp else SECTION.render(
+                text=text)
             return pf.RawBlock(tex, format='latex')
 
 
