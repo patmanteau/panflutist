@@ -14,6 +14,7 @@ Usage:
     ``` python
     language: python
     identifier: linear-gradient-descent
+    shortcaption: Lineares Gradientenverfahren
     caption: Lineares Gradientenverfahren [vgl. @Cousteau, 33-35]
     floating: True
     placement: htp
@@ -64,7 +65,7 @@ CODEBLOCK = latex_env.from_string(r"""<%- if floating -%>
 \begin{minted}<% if options %>[<< options >>]<% endif %>{<< language >>}
 << content >>
 \end{minted}
-<% if caption %><% if floating %>\caption{<< caption >>}<% else %>\captionof{listing}{<< caption >>}<% endif %><% endif %>
+<% if caption %><% if floating %>\caption<% if shortcaption %>[<< shortcaption >>]<% endif %>{<< caption >>}<% else %>\captionof{listing}<% if shortcaption %>[<< shortcaption >>]<% endif %>{<< caption >>}<% endif %><% endif %>
 <% if identifier %>\label{<< identifier >>}<% endif %>
 <% if floating %>\end{listing}<% endif %>""")
 
@@ -76,6 +77,12 @@ def fenced_latex(options, data, element, doc):
                               input_format='markdown',
                               output_format='latex') if raw_caption else None
 
+    raw_shortcaption = options.get('shortcaption')
+    shortcaption = pf.convert_text(options.get('shortcaption'),
+                              extra_args=['--biblatex'],
+                              input_format='markdown',
+                              output_format='latex') if raw_shortcaption else None
+
     latex = CODEBLOCK.render({
         'floating': options.get('caption'),
         'placement': options.get('placement'),
@@ -83,6 +90,7 @@ def fenced_latex(options, data, element, doc):
         'language': options.get('language'),
         'content': data,
         'caption': caption,
+        'shortcaption': shortcaption,
         'identifier': options.get('identifier', '')
     })
     return pf.RawBlock(latex, format='latex')
