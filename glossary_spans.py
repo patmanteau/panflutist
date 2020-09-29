@@ -20,7 +20,7 @@ from jinja2tex import latex_env
 import panflute as pf
 
 USE_TERM = latex_env.from_string(
-    r"<% if uppercase %>\Gls<% else %>\gls<% endif %>{<< label >>}")
+    r"<% if uppercase %><% if plural %>\Glspl<% else %>\Gls<% endif %><% else %><% if plural %>\glspl<% else %>\gls<% endif %><% endif %>{<< label >>}")
 
 DEFINE_ABBREVIATION = latex_env.from_string(
     r"\newabbreviation{<< label >>}{<< short >>}{<< long >>}")
@@ -45,12 +45,15 @@ def ac_latex(e, doc):
     _short = e.attributes.get('short')
     _long = e.attributes.get('long')
 
+    pf.debug("ac found: ", label, _short, _long)
+
     if _short and _long:
         values = {
             'label': label,
             'short': _short,
             'long': _long,
-            'uppercase': 'up' in e.classes
+            'uppercase': 'up' in e.classes,
+            'plural': 'pl' in e.classes
         }
         doc.abbrs[label] = values
 
@@ -83,7 +86,7 @@ def gl_latex(e, doc):
         }
         doc.glsentries[label] = values
 
-    tex = USE_TERM.render(label=label, uppercase='up' in e.classes)
+    tex = USE_TERM.render(label=label, plural='pl' in e.classes, uppercase='up' in e.classes)
     return pf.RawInline(tex, format='latex')
 
 
