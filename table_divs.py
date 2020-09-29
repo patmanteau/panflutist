@@ -55,7 +55,8 @@ class LatexTableCell(object):
         'AlignDefault': r'\raggedright',
         'AlignLeft': r'\raggedright',
         'AlignRight': r'\raggedleft',
-        'AlignCenter': r'\centered'
+        #'AlignCenter': r'\centered'
+        'AlignCenter': r''
     }
 
     __slots__ = ['content', 'width', 'align', 'valign']
